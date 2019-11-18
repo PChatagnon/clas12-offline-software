@@ -2,6 +2,7 @@ package org.jlab.rec.tof.banks.ctof;
 
 import java.util.ArrayList;
 import java.util.List;
+import org.jlab.detector.base.DetectorType;
 
 import org.jlab.io.base.DataBank;
 import org.jlab.io.base.DataEvent;
@@ -86,7 +87,7 @@ public class RecoBankWriter {
             bank.setFloat("x", i, (float) hitlist.get(i).get_Position().x());
             bank.setFloat("y", i, (float) hitlist.get(i).get_Position().y());
             bank.setFloat("z", i, (float) hitlist.get(i).get_Position().z());
-            if (hitlist.get(i).get_TrkPosition() != null && hitlist.get(i).get_TrkPosition().z() != 0) {
+            if (hitlist.get(i)._AssociatedTrkId>-1) {
                 bank.setFloat("tx", i, (float) hitlist.get(i).get_TrkPosition().x());
                 bank.setFloat("ty", i, (float) hitlist.get(i).get_TrkPosition().y());
                 bank.setFloat("tz", i, (float) hitlist.get(i).get_TrkPosition().z());
@@ -103,6 +104,76 @@ public class RecoBankWriter {
             bank.setShort("tdc_idx2",i, (short) hitlist.get(i).get_TDCbankHitIdx2()); 
             bank.setFloat("pathLength", i, (float) hitlist.get(i)
                     .get_TrkPathLen());
+            bank.setFloat("pathLengthThruBar", i, (float) hitlist.get(i)
+                    .get_TrkPathLenThruBar());
+        }
+        //bank.show();
+        return bank;
+
+    }
+
+    public DataBank fillRecHits2Bank(DataEvent event, List<Hit> hitlist) {
+        if (hitlist == null) {
+            return null;
+        }
+        if (hitlist.size() == 0) {
+            return null;
+        }
+
+        DataBank bank = event.createBank("CTOF::hits2", hitlist.size());
+        if (bank == null) {
+            System.err.println("COULD NOT CREATE A BANK!!!!!!");
+            return null;
+        }
+        for (int i = 0; i < hitlist.size(); i++) {
+            bank.setShort("id", i, (short) hitlist.get(i).get_Id());
+            bank.setByte("sector", i, (byte) hitlist.get(i).get_Sector());
+            bank.setByte("layer", i, (byte) hitlist.get(i).get_Panel());
+            bank.setShort("component", i, (short) hitlist.get(i).get_Paddle());
+            int status = 0;
+//            if (Integer.parseInt(hitlist.get(i).get_StatusWord()) == 1111) {
+//                status = 1;
+//            }
+            status = Integer.parseInt(hitlist.get(i).get_StatusWord());
+            bank.setShort("status", i, (short) status);
+            bank.setFloat("energy", i, (float) hitlist.get(i).get_Energy());
+            bank.setFloat("energy_unc", i, (float) hitlist.get(i).get_EnergyUnc());
+            bank.setFloat("time", i, (float) hitlist.get(i).get_t());
+            bank.setFloat("time_unc", i, (float) hitlist.get(i).get_tUnc());
+            bank.setFloat("x", i, (float) hitlist.get(i).get_Position().x());
+            bank.setFloat("y", i, (float) hitlist.get(i).get_Position().y());
+            bank.setFloat("z", i, (float) hitlist.get(i).get_Position().z());
+            if (hitlist.get(i)._AssociatedTrkId>-1 && event.hasBank("CVTRec::Trajectory")) {
+                DataBank bankT = event.getBank("CVTRec::Trajectory");
+                int rows = bankT.rows();
+                for (int j = 0; j < rows; j++) {
+                    if(bankT.getByte("detector", j)==DetectorType.CTOF.getDetectorId() && hitlist.get(i)._AssociatedTrkId==bankT.getShort("id", j)) {
+                        double x     = bankT.getFloat("x", j);
+                        double y     = bankT.getFloat("y", j);
+                        double z     = bankT.getFloat("z", j);
+                        double theta = bankT.getFloat("theta", j);
+                        double phi   = bankT.getFloat("phi", j);                
+                        double ux    = Math.sin(theta)*Math.cos(phi);
+                        double uy    = Math.sin(theta)*Math.sin(phi);
+                        double uz    = Math.cos(theta);
+                        double path  = bankT.getFloat("path", j);            
+                        bank.setFloat("tx", i, (float) x);
+                        bank.setFloat("ty", i, (float) y);
+                        bank.setFloat("tz", i, (float) z);
+                        bank.setFloat("pathLength", i, (float) path);
+                        bank.setShort("trkID", i, (short) hitlist.get(i)._AssociatedTrkId);
+                    }
+                }
+            } else {
+                bank.setShort("trkID", i, (short) -1);
+            }
+            bank.setFloat("x_unc", i, 5);
+            bank.setFloat("y_unc", i, (float) hitlist.get(i).get_yUnc());
+            bank.setFloat("z_unc", i, 10);
+            bank.setShort("adc_idx1",i, (short) hitlist.get(i).get_ADCbankHitIdx1()); 		
+            bank.setShort("adc_idx2",i, (short) hitlist.get(i).get_ADCbankHitIdx2()); 		
+            bank.setShort("tdc_idx1",i, (short) hitlist.get(i).get_TDCbankHitIdx1()); 		
+            bank.setShort("tdc_idx2",i, (short) hitlist.get(i).get_TDCbankHitIdx2()); 
             bank.setFloat("pathLengthThruBar", i, (float) hitlist.get(i)
                     .get_TrkPathLenThruBar());
         }
@@ -162,6 +233,11 @@ public class RecoBankWriter {
         DataBank bank2 = this.fillRecHitsBank((DataEvent) event, hits);
         if (bank2 != null) {
             cTOFBanks.add(bank2);
+        }
+
+        DataBank bank22 = this.fillRecHits2Bank((DataEvent) event, hits);
+        if (bank22 != null) {
+            cTOFBanks.add(bank22);
         }
 
         DataBank bank3 = this.fillClustersBank((DataEvent) event, clusters);
