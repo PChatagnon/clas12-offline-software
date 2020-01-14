@@ -7,6 +7,7 @@ package org.jlab.detector.geant4.v2;
 
 import eu.mihosoft.vrl.v3d.Vector3d;
 import java.io.InputStream;
+import java.util.ArrayList;
 import static org.jlab.detector.hits.DetId.CTOFID;
 import org.jlab.detector.units.SystemOfUnits.Length;
 import org.jlab.detector.volume.G4Stl;
@@ -26,8 +27,10 @@ public final class CTOFGeant4Factory extends Geant4Factory {
     private final int npaddles = 48;
     private final String ctofdbpath = "/geometry/ctof/ctof/";
     private final String caddbpath  = "/geometry/ctof/cad/";
+    private final String trajdbpath = "/geometry/ctof/trajectory/";
     private final String tgdbpath   = "/geometry/target/";
     private double globalOffset = 0;
+    private CTOFsurface surface = null;
     
     public CTOFGeant4Factory(ConstantProvider cp) {
         
@@ -36,6 +39,11 @@ public final class CTOFGeant4Factory extends Geant4Factory {
         double cadThick   = cp.getDouble(caddbpath+"thickness", 0); 
         double cadAngle   = cp.getDouble(caddbpath+"angle", 0);
         double cadOffset  = cp.getDouble(caddbpath+"offset", 0);
+        double trajRadius = cp.getDouble(trajdbpath+"p0", 0);
+        double trajZbend  = cp.getDouble(trajdbpath+"p1", 0);
+        double trajSlope  = cp.getDouble(trajdbpath+"p2", 0);
+        double trajLength = cp.getDouble(trajdbpath+"p3", 0);
+//        System.out.println(trajRadius + " " + trajZbend + " " + trajSlope + " " + trajLength);
         motherVolume = new G4World("root");
 
         ClassLoader cloader = getClass().getClassLoader();
@@ -60,6 +68,7 @@ public final class CTOFGeant4Factory extends Geant4Factory {
                 }
             }
         }
+        surface = new CTOFsurface(trajRadius, trajZbend+globalOffset, trajSlope, trajLength);
     }
 
     public Vector3d getCenter(double radius, double thickness, double angle){
@@ -85,6 +94,10 @@ public final class CTOFGeant4Factory extends Geant4Factory {
     public double getRadius(int ipaddle){
         CTOFpaddle pad = (CTOFpaddle) motherVolume.getChildren().get(ipaddle - 1);
         return pad.center.magnitude();
+    }
+    
+    public CTOFsurface getPolycone() {
+        return this.surface;
     }
     
     private class CTOFpaddle extends G4Stl {
@@ -121,6 +134,68 @@ public final class CTOFGeant4Factory extends Geant4Factory {
         }
     }
 
+    public class CTOFsurface {
+        private int nPlanes;
+        private ArrayList<Double> radius = new ArrayList();
+        private ArrayList<Double> planeZ = new ArrayList();
+
+        /**
+         * CTOF trajectory surface
+         * the surface is described as a polycone with a cylindrical part and a conical part
+         * 
+         * @param rad:    radius of the cylindrical part
+         * @param zbend:  z location of the transition between cylinder and cone
+         * @param slope:  slope of the conical surface
+         * @param length: length of the cylindrical and conical sections
+         * 
+         */
+        public CTOFsurface(double rad, double zbend, double slope, double length) {
+            nPlanes = 3;
+            planeZ.add(zbend-length);
+            planeZ.add(zbend);
+            planeZ.add(zbend+length);
+            radius.add(rad);
+            radius.add(rad);
+            radius.add(rad+slope*length);
+//            System.out.println(planeZ.get(0) + " " + radius.get(0));
+//            System.out.println(planeZ.get(1) + " " + radius.get(1));
+//            System.out.println(planeZ.get(2) + " " + radius.get(2));
+        }
+        
+        public ArrayList<Double> getRadiuses() {
+            return radius;
+        } 
+        
+        public ArrayList<Double> getZPlanes() {
+            return planeZ;
+        } 
+        
+        public int getPlanesNumber() {
+            return nPlanes;
+        } 
+        
+        public double getRadius(double z) {
+            double r = 0;
+            if(z<planeZ.get(0)) {
+                r = radius.get(0);
+            }
+            else if(z>=planeZ.get(nPlanes-1)) {
+                r = radius.get(nPlanes-1);
+            }
+            else{
+                for(int i=0; i<nPlanes-1; i++) {
+                    if(z>=planeZ.get(i) && z<planeZ.get(i+1)) {
+                        r = radius.get(i) + (z-planeZ.get(i))*(radius.get(i+1)-radius.get(i))/(planeZ.get(i+1)-planeZ.get(i));
+                        break;
+                    }
+                }
+            }
+            return r;
+
+        }
+
+    }
+    
     public static void main(String[] args) {
         ConstantProvider cp = GeometryFactory.getConstants(DetectorType.CTOF);
         CTOFGeant4Factory factory = new CTOFGeant4Factory(cp);

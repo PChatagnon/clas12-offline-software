@@ -234,13 +234,12 @@ public class TrajectoryFinder {
         double theta=0;
         double path=0;
         if(ctof_geo!=null) {
-            double radius = ctof_geo.getRadius(1);
-            inters = swimmer.SwimToCylinder(radius);
+            inters = swimmer.SwimToPolycone(ctof_geo.getPolycone().getRadiuses(), ctof_geo.getPolycone().getRadiuses());
             double r = Math.sqrt(inters[0]*inters[0]+inters[1]*inters[1]);
             phi   = Math.atan2(inters[4], inters[3]);
             theta = Math.acos(inters[5]/Math.sqrt(inters[3]*inters[3]+inters[4]*inters[4]+inters[5]*inters[5]));
             path  = inters[6];
-            if(r>=radius) {
+            if(r>=ctof_geo.getPolycone().getRadius(inters[2])) {
                 StateVec stVec = new StateVec(inters[0]*10, inters[1]*10, inters[2]*10, inters[3], inters[4], inters[5]);
                 stVec.set_SurfaceDetector(DetectorType.CTOF.getDetectorId());
                 stVec.set_SurfaceSector(1);

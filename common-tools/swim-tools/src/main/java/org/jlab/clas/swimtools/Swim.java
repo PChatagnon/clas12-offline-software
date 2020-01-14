@@ -12,6 +12,7 @@ import cnuphys.swim.util.Plane;
 import cnuphys.swimZ.SwimZException;
 import cnuphys.swimZ.SwimZResult;
 import cnuphys.swimZ.SwimZStateVector;
+import java.util.ArrayList;
 import org.apache.commons.math3.util.FastMath;
 import org.jlab.geom.prim.Vector3D;
 
@@ -417,6 +418,116 @@ public class Swim {
             return null;
         
         CylindricalBoundarySwimStopper stopper = new CylindricalBoundarySwimStopper(Rad);
+        
+        SwimTrajectory st = PC.CF.swim(_charge, _x0, _y0, _z0, _pTot, _theta, _phi, stopper, _maxPathLength, stepSize,
+                        0.0005);
+        if(st==null)
+                return null;
+        st.computeBDL(PC.CP);
+        // st.computeBDL(compositeField);
+
+        double[] lastY = st.lastElement();
+
+        value[0] = lastY[0] * 100; // convert back to cm
+        value[1] = lastY[1] * 100; // convert back to cm
+        value[2] = lastY[2] * 100; // convert back to cm
+        value[3] = lastY[3] * _pTot; // normalized values
+        value[4] = lastY[4] * _pTot;
+        value[5] = lastY[5] * _pTot;
+        value[6] = lastY[6] * 100;
+        value[7] = lastY[7] * 10; // Conversion from kG.m to T.cm
+
+        return value;
+
+    }
+
+    /**
+     * Polycone stopper
+     */
+    private class PolyconeBoundarySwimStopper implements IStopper {
+
+        private double _finalPathLength = Double.NaN;
+
+        private ArrayList<Double> _R = new ArrayList();
+        private ArrayList<Double> _Z = new ArrayList();
+        private int _N = 0;
+        double max = -1.0;
+        /**
+         * A swim stopper that will stop if the boundary of a polycone is crossed
+         **/
+        private PolyconeBoundarySwimStopper(ArrayList<Double> R, ArrayList<Double> Z) {
+ 
+            _N = Math.min(R.size(),Z.size());
+            for(int i=0; i<_N; i++) {
+                _R.add((R.get(i)));
+                _Z.add((Z.get(i)));
+            }
+        }
+        
+        private double getRadius(double z) {
+            double radius = 0;
+            if(z<_Z.get(0)) {
+                radius = _R.get(0);
+            }
+            else if(z>=_Z.get(_N-1)) {
+                radius = _R.get(_N-1);
+            }
+            else{
+                for(int i=0; i<_N-1; i++) {
+                    if(z>=_Z.get(i) && z<_Z.get(i+1)) {
+                        radius = _R.get(i) + (z-_Z.get(i))*(_R.get(i+1)-_R.get(i))/(_Z.get(i+1)-_Z.get(i));
+                        break;
+                    }
+                }
+            }
+            return radius;
+        }
+        
+        @Override
+        public boolean stopIntegration(double t, double[] y) {
+
+            double r = Math.sqrt(y[0] * y[0] + y[1] * y[1]) * 100.;
+            if(r>max ) max = r;
+            // stop integration is track is coming back (r is decreasing) or has crossed polycone surface
+            return (r < max || r > this.getRadius(y[2]*100));
+
+        }
+
+        /**
+         * Get the final path length in meters
+         *
+         * @return the final path length in meters
+         */
+        @Override
+        public double getFinalT() {
+                return _finalPathLength;
+        }
+
+        /**
+         * Set the final path length in meters
+         *
+         * @param finalPathLength
+         *            the final path length in meters
+         */
+        @Override
+        public void setFinalT(double finalPathLength) {
+                _finalPathLength = finalPathLength;
+        }
+    }
+    //private final double LIGHTVEL     = 0.000299792458 ;
+    
+    /**
+     * 
+     * @param Rad
+     * @return state  x,y,z,px,py,pz, pathlength, iBdl at the surface 
+     */
+    public double[] SwimToPolycone(ArrayList<Double> R, ArrayList<Double> Z) {
+        
+        double[] value = new double[8];
+        if(this.SwimUnPhys)
+            return null;
+        
+        PolyconeBoundarySwimStopper stopper = new PolyconeBoundarySwimStopper(R, Z);
         
         SwimTrajectory st = PC.CF.swim(_charge, _x0, _y0, _z0, _pTot, _theta, _phi, stopper, _maxPathLength, stepSize,
                         0.0005);
