@@ -59,7 +59,8 @@ public class Hit extends AHit implements IGetCalibrationParams {
             IndexedTable constants2, 
             IndexedTable constants3, 
             IndexedTable constants5, 
-            IndexedTable constants8) {
+            IndexedTable constants8,
+            CTOFGeant4Factory geometry) {
         /*
         0: "/calibration/ctof/attenuation"),
         1: "/calibration/ctof/effective_velocity"),
@@ -125,7 +126,8 @@ public class Hit extends AHit implements IGetCalibrationParams {
                 ADCUErr, ADCDErr, TDCUErr, TDCDErr, ADC_MIP, ADC_MIPErr,
                 DEDX_MIP, ScinBarThickn, pl);
         // Set the hit position in the local coordinate of the bar
-        this.set_Position(this.calc_hitPosition());
+        this.set_Position(this.calc_hitPosition(geometry));
+//        System.out.println(this.get_y() + " " + this.get_yTrk());
 
     }
 
@@ -156,26 +158,8 @@ public class Hit extends AHit implements IGetCalibrationParams {
         this.set_barthickness(geometry.getThickness(get_Paddle()));
     }
 
-    private Point3D calc_hitPosition() {
-        Point3D hitPosition = new Point3D();
-//        Vector3D dir = new Vector3D(this.get_paddleLine().end().x()
-//                - this.get_paddleLine().origin().x(), this.get_paddleLine()
-//                .end().y()
-//                - this.get_paddleLine().origin().y(), this.get_paddleLine()
-//                .end().z()
-//                - this.get_paddleLine().origin().z());
-//        dir.unit();
-        Point3D startpoint = this.get_paddleLine().origin();
-        // double L_2 = this.get_paddleLine().length()/2;
-        // hitPosition.setX(startpoint.x() + (L_2+this.get_y())*dir.x());
-        // hitPosition.setY(startpoint.y() + (L_2+this.get_y())*dir.y());
-        // hitPosition.setZ(startpoint.z() + (L_2+this.get_y())*dir.z());
-        hitPosition.setX(startpoint.x());
-        hitPosition.setY(startpoint.y());
-        hitPosition.setZ(this.get_y());
-//        System.out.println(hitPosition.x() + " " + hitPosition.y() + " " +hitPosition.z() + " " + Constants.SCBARTHICKN[0]);
-
-        return hitPosition;
+    private Point3D calc_hitPosition(CTOFGeant4Factory geometry) {
+        return geometry.getSurfacePointAtZ(this.get_Paddle(),this.get_y());
     }
 
     public void printInfo() {

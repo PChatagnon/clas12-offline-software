@@ -17,6 +17,7 @@ import org.jlab.geometry.prim.Line3d;
 import org.jlab.geom.base.ConstantProvider;
 import org.jlab.detector.base.DetectorType;
 import org.jlab.detector.base.GeometryFactory;
+import org.jlab.geom.prim.Point3D;
 
 /**
  *
@@ -100,6 +101,14 @@ public final class CTOFGeant4Factory extends Geant4Factory {
         return this.surface;
     }
     
+    public Point3D getSurfacePointAtZ(int ipaddle, double z) {
+        CTOFpaddle pad = (CTOFpaddle) motherVolume.getChildren().get(ipaddle - 1);
+        double x = pad.center.x*this.getPolycone().getRadius(z)/this.getRadius(ipaddle);
+        double y = pad.center.y*this.getPolycone().getRadius(z)/this.getRadius(ipaddle);
+        Point3D position = new Point3D(x,y,z);
+        return position;
+    }
+            
     private class CTOFpaddle extends G4Stl {
 
         private final Line3d centerline;

@@ -143,7 +143,8 @@ public class HitReader implements IMatchedHit {
              constants2, 
              constants3, 
              constants5, 
-             constants8);
+             constants8,
+             geometry);
             // DetHits.get(hit.get_Panel()-1).add(hit);
         }
         // List<Hit> unique_hits = this.removeDuplicatedHits(updated_hits);

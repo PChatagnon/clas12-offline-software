@@ -234,7 +234,7 @@ public class TrajectoryFinder {
         double theta=0;
         double path=0;
         if(ctof_geo!=null) {
-            inters = swimmer.SwimToPolycone(ctof_geo.getPolycone().getRadiuses(), ctof_geo.getPolycone().getRadiuses());
+            inters = swimmer.SwimToPolycone(ctof_geo.getPolycone().getRadiuses(), ctof_geo.getPolycone().getZPlanes());
             double r = Math.sqrt(inters[0]*inters[0]+inters[1]*inters[1]);
             phi   = Math.atan2(inters[4], inters[3]);
             theta = Math.acos(inters[5]/Math.sqrt(inters[3]*inters[3]+inters[4]*inters[4]+inters[5]*inters[5]));
@@ -255,6 +255,7 @@ public class TrajectoryFinder {
         }
         // CND
         if(cnd_geo!=null && inters!=null) {     //  don't swim to CND if swimming to CTOF failed
+            double r = Math.sqrt(inters[0]*inters[0]+inters[1]*inters[1]);
             for(int ilayer=0; ilayer<cnd_geo.getSector(0).getSuperlayer(0).getNumLayers(); ilayer++) {
                 swimmer.SetSwimParameters(inters[0], inters[1], inters[2], 
                         Math.toDegrees(phi), Math.toDegrees(theta),
@@ -262,8 +263,9 @@ public class TrajectoryFinder {
                         maxPathLength) ;
                 Point3D center = cnd_geo.getSector(0).getSuperlayer(0).getLayer(ilayer).getComponent(0).getMidpoint();
                 double radius  = Math.sqrt(center.x()*center.x()+center.y()*center.y());
+                if(r>radius) break; // if previous swimming ended beyond cylinder, then stop (can happen from CTOF to CND)
                 inters = swimmer.SwimToCylinder(radius);
-                double r = Math.sqrt(inters[0]*inters[0]+inters[1]*inters[1]);
+                r = Math.sqrt(inters[0]*inters[0]+inters[1]*inters[1]);
                 phi   = Math.atan2(inters[4], inters[3]);
                 theta = Math.acos(inters[5]/Math.sqrt(inters[3]*inters[3]+inters[4]*inters[4]+inters[5]*inters[5]));
                 path  = path + inters[6];

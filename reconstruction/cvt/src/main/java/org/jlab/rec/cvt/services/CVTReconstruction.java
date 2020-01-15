@@ -190,7 +190,8 @@ public class CVTReconstruction extends ReconstructionEngine {
         
         // Load other geometries
         String variationName = Optional.ofNullable(this.getEngineConfigString("variation")).orElse("default");
-        ConstantProvider providerCTOF = GeometryFactory.getConstants(DetectorType.CTOF, 11, variationName);
+//        ConstantProvider providerCTOF = GeometryFactory.getConstants(DetectorType.CTOF, 11, variationName);
+        ConstantProvider providerCTOF = GeometryFactory.getConstants(DetectorType.CTOF, 11, "default"); // temporary patch to get intersection right for data
         CTOFGeom = new CTOFGeant4Factory(providerCTOF);        
         CNDGeom =  GeometryFactory.getDetector(DetectorType.CND, 11, variationName);
         

@@ -461,6 +461,7 @@ public class Swim {
             for(int i=0; i<_N; i++) {
                 _R.add((R.get(i)));
                 _Z.add((Z.get(i)));
+//                System.out.println(i + " " + _R.get(i) + " " + _Z.get(i));
             }
         }
         
