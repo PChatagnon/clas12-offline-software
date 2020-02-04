@@ -175,7 +175,7 @@ public class TrajectoryFinder {
 
         }
         // reinitialize from vertex
-        maxPathLength = 1.5;  
+        maxPathLength = 1.0;  
         swimmer.SetSwimParameters((trk.get_helix().xdca()+org.jlab.rec.cvt.Constants.getXb()) / 10, (trk.get_helix().ydca()+org.jlab.rec.cvt.Constants.getYb()) / 10, trk.get_helix().get_Z0() / 10, 
                      Math.toDegrees(trk.get_helix().get_phi_at_dca()), Math.toDegrees(Math.acos(trk.get_helix().costheta())),
                      trk.get_P(), trk.get_Q(), maxPathLength) ;
@@ -187,6 +187,7 @@ public class TrajectoryFinder {
             if(inters!=null) {
                 double intersPhi   = Math.atan2(inters[4], inters[3]);
                 double intersTheta = Math.acos(inters[5]/Math.sqrt(inters[3]*inters[3]+inters[4]*inters[4]+inters[5]*inters[5]));
+                maxPathLength = 0.2;  
                 swimmer.SetSwimParameters(inters[0], inters[1], inters[2], Math.toDegrees(intersPhi), Math.toDegrees(intersTheta), trk.get_P(), trk.get_Q(), maxPathLength) ;
             }
             if(inters!=null || l==org.jlab.rec.cvt.svt.Constants.NLAYR) { // don't swim if previous layers was not reached
